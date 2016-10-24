@@ -1,18 +1,15 @@
-package sailpoint.plugin.helloworld;
-
-import java.util.ArrayList;
-import java.util.List;
+package sailpoint.plugin.iiqmdmplugin;
 
 /**
  */
-public class HelloWorldDTO {
-    private String _message = new String();
+public class MasterDataManagementDTO {
+    private String _data = new String();
 
     public String get_message() {
-        return _message;
+        return _data;
     }
 
-    public void set_message(String _message) {
-        this._message = _message;
+    public void set_message(String _data) {
+        this._data = _data;
     }
 }
