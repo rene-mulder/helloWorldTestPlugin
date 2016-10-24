@@ -1,4 +1,1 @@
-select "About to drop table 'helloworld_table'";
-
-drop table if exists helloworld_table;
-drop table if exists new_table;
+--

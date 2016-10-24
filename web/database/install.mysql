@@ -1,5 +1,1 @@
-select 1;
-
-CREATE  TABLE `helloworld_table` (
-  `idnew_table` INT NOT NULL ,
-  PRIMARY KEY (`idhelloworld_table`) );
+--

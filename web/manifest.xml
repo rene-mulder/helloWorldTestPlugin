@@ -8,41 +8,39 @@
                     <entry key="Plugins">
                         <value>
                             <Map>
-                                <entry key="HelloWorld">
+                                <entry key="MasterDataManagement">
                                     <value>
-                                        <Plugin uniqueName="HelloWorld" displayName="Hello World" enabled="true"
-                                                version="0.2.1" allowDisable="true" visible="true" allowUninstall="true"
-                                                minFrameworkVersion="0.1.0" maxFrameworkVersion="1.0.0"
-                                                minUpgradableVersion="0.1.3" certificationLevel="BASIC"
-                                                pluginAccessRight="HelloWorldPluginRight">
+                                        <Plugin uniqueName="iiqmdmplugin" displayName="Master Data Management Plugin" enabled="true"
+                                                version="0.0.0.1" allowDisable="true" visible="true" allowUninstall="true"
+                                                minFrameworkVersion="0.5.3" maxFrameworkVersion="1.0.0"
+                                                minUpgradableVersion="0.0.0.0" certificationLevel="BASIC"
+                                                pluginAccessRight="MasterDataManagementPluginRight">
 
-                                            <PluginConfiguration
-                                                    settingsPageTemplateURL="ui/htmlTemplates/pluginSettings.html">
-                                                <FullPage desktopIncludePath="{plugin_root}/ui/hello.xhtml"
-                                                          mobileIncludePath="{plugin_root}/ui/hello.xhtml"/>
+                                            <PluginConfiguration settingsPageTemplateURL="ui/htmlTemplates/pluginSettings.html">
+                                                <!--
+                                                <FullPage desktopIncludePath="{plugin_root}/ui/iiqmdmplugin.xhtml"
+                                                          mobileIncludePath="{plugin_root}/ui/iiqmdmplugin.xhtml"/>
+                                                -->
                                                 <Snippets>
                                                     <Snippet pagesMatchRegExPattern=".*" isMobile="true"
-                                                             isDesktop="true" rightRequired="HelloWorldPluginIconRight" >
+                                                             isDesktop="true" rightRequired="MasterDataManagementPluginIconRight" >
                                                         <ScriptIncludes>
                                                             <String>{plugin_root}/ui/js/headerInject.js</String>
                                                         </ScriptIncludes>
                                                         <StylesheetIncludes>
-                                                            <String>{plugin_root}/ui/css/helloWorld.css</String>
+                                                            <String>{plugin_root}/ui/css/iiqmdmplugin.css</String>
                                                         </StylesheetIncludes>
                                                     </Snippet>
+                                                    <!-- 
                                                     <Snippet pagesMatchRegExPattern=".*\/home\.?(jsf|xhtml)" isMobile="true"
-                                                             isDesktop="true" rightRequired="HelloWorldPluginIconRight" >
+                                                             isDesktop="true" rightRequired="MasterDataManagementPluginIconRight" >
                                                         <ScriptIncludes>
-                                                            <String>{plugin_root}/ui/js/HelloWorldWidgetModule.js</String>
+                                                            <String>{plugin_root}/ui/js/iiqmdmplugin.js</String>
                                                         </ScriptIncludes>
                                                     </Snippet>
+                                                    -->
                                                 </Snippets>
                                             </PluginConfiguration>
-                                            <ConfigurableSettings>
-                                                <Map>
-                                                    <entry key="Message" value="Hello World"/>
-                                                </Map>
-                                            </ConfigurableSettings>
                                         </Plugin>
                                     </value>
                                 </entry>
