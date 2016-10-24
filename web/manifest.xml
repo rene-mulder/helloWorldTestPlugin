@@ -22,6 +22,7 @@
                                                           mobileIncludePath="{plugin_root}/ui/iiqmdmplugin.xhtml"/>
                                                 -->
                                                 <Snippets>
+                                                	<!-- 
                                                     <Snippet pagesMatchRegExPattern=".*" isMobile="true"
                                                              isDesktop="true" rightRequired="MasterDataManagementPluginIconRight" >
                                                         <ScriptIncludes>
@@ -31,6 +32,7 @@
                                                             <String>{plugin_root}/ui/css/iiqmdmplugin.css</String>
                                                         </StylesheetIncludes>
                                                     </Snippet>
+                                                    -->
                                                     <!-- 
                                                     <Snippet pagesMatchRegExPattern=".*\/home\.?(jsf|xhtml)" isMobile="true"
                                                              isDesktop="true" rightRequired="MasterDataManagementPluginIconRight" >
