@@ -1,4 +1,4 @@
 <!DOCTYPE sailpoint PUBLIC "sailpoint.dtd" "sailpoint.dtd">
 <sailpoint>
-  <ImportAction name='include' value='{plugin_root}Permissions.xml'/>
+  <ImportAction name='include' value='{plugin_root}/installation/Permissions.xml'/>
 </sailpoint>
