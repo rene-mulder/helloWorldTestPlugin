@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/Users/mpieters/Applications/apache-tomcat-7.0.59/webapps.available/identityiq7/WEB-INF/lib/identityiq.jar"/>
+	<classpathentry kind="lib" path="/Users/mpieters/Applications/apache-tomcat-7.0.59/webapps.available/identityiq7/WEB-INF/lib/pluginframework.jar"/>
+	<classpathentry kind="lib" path="/Users/mpieters/Applications/apache-tomcat-7.0.59/webapps.available/identityiq7/WEB-INF/lib/jersey-multipart-1.16.jar"/>
+	<classpathentry kind="lib" path="/Users/mpieters/Applications/apache-tomcat-7.0.59/webapps.available/identityiq7/WEB-INF/lib/jersey-bundle-1.16.jar"/>
+	<classpathentry kind="lib" path="/Users/mpieters/Applications/apache-tomcat-7.0.59/webapps.available/identityiq7/WEB-INF/lib/commons-logging-1.1.3.jar"/>
+	<classpathentry kind="lib" path="/Users/mpieters/Applications/apache-tomcat-7.0.59/webapps.available/identityiq7/WEB-INF/lib/gson-2.1.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
