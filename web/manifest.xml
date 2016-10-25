@@ -11,12 +11,12 @@
                                 <entry key="MasterDataManagement">
                                     <value>
                                         <Plugin uniqueName="iiqmdmplugin" displayName="Master Data Management Plugin" enabled="true"
-                                                version="0.0.0.1" allowDisable="true" visible="true" allowUninstall="true"
-                                                minFrameworkVersion="0.5.3" maxFrameworkVersion="1.0.0"
+                                                version="0.0.0.24" allowDisable="true" visible="true" allowUninstall="true"
+                                                minFrameworkVersion="0.5.5" maxFrameworkVersion="1.0.0"
                                                 minUpgradableVersion="0.0.0.0" certificationLevel="BASIC"
                                                 pluginAccessRight="MasterDataManagementPluginRight">
 
-                                            <PluginConfiguration settingsPageTemplateURL="ui/htmlTemplates/pluginSettings.html">
+                                            <PluginConfiguration><!-- settingsPageTemplateURL="ui/htmlTemplates/pluginSettings.html" -->
                                                 <!--
                                                 <FullPage desktopIncludePath="{plugin_root}/ui/iiqmdmplugin.xhtml"
                                                           mobileIncludePath="{plugin_root}/ui/iiqmdmplugin.xhtml"/>
