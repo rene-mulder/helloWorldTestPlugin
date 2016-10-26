@@ -7,7 +7,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -44,6 +46,8 @@ public class MDMRestResource extends AbstractPluginRestResource {
 	public final static String CONFIG_PERMISSION_UPDATE = "UPDATE";
 	public final static String CONFIG_PERMISSION_DELETE = "DELETE";
 	public final static String[] CONFIG_PERMISSIONS = { CONFIG_PERMISSION_MANAGE, CONFIG_PERMISSION_CREATE, CONFIG_PERMISSION_DELETE, CONFIG_PERMISSION_READ, CONFIG_PERMISSION_UPDATE };
+	
+	public final static int MAX_ITEM_DEPTH = 10;
 
 	private static Log log = LogFactory.getLog(MDMRestResource.class);
 
@@ -157,6 +161,57 @@ public class MDMRestResource extends AbstractPluginRestResource {
 	}
 	
 	/**
+	 * Convert a list of PathSegment objects into a list of strings.
+	 * 
+	 * @param entryList
+	 * @return
+	 */
+	private List<String> convertEntryList(List<PathSegment> entryList) {
+		List<String> entryNamesList = new ArrayList<String>();
+		if (entryList != null && !entryList.isEmpty()) {
+			for (PathSegment segment: entryList) {
+				String name = segment.getPath();
+				log.error("Segment: " + name);
+				entryNamesList.add(name);
+			}
+		}
+		return entryNamesList;
+	}
+	
+	private boolean isEntryExists(Map<String, Object> map, List<String> entryNameList) {
+		log.debug(String.format("Enter: isEntryExists(%s, %s)", map.toString(), entryNameList.toString()));
+		if (map != null && entryNameList != null && !entryNameList.isEmpty()) {
+			if (entryNameList.size() > MAX_ITEM_DEPTH) {
+				String message = "Entry list too deep";
+				log.error(message);
+				throw new WebApplicationException(new Exception(message), 500);
+			}
+			String key = entryNameList.get(0);
+			@SuppressWarnings("unchecked")
+			List<String> newEntryNameList = ((List<String>) ((ArrayList<String>) entryNameList).clone());
+			newEntryNameList.remove(0);
+			if (map.containsKey(key)) {
+				Object entry = map.get(key);
+				if (newEntryNameList.isEmpty()) {
+					log.debug("Found object");
+					return true;
+				}
+				if (entry instanceof Map) {
+					log.debug("Next level");
+					return isEntryExists((Map<String, Object>) entry, newEntryNameList);
+				}
+				if (newEntryNameList.size() == 1) {
+					log.debug("Entry is leaf");
+					return true;
+				}
+			} else {
+				log.error("Entry not found");
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Walk down the list of entry names. If found return the entry and possibly sub-entries from that point.
 	 * A leaf entry may be of any type. A non-leaf entry must be a Map.
 	 * 
@@ -165,10 +220,10 @@ public class MDMRestResource extends AbstractPluginRestResource {
 	 * @return
 	 * @throws WebApplicationException
 	 */
-	private Object getEntry(Map<String, Object> map, List<String> entryNameList) throws WebApplicationException {
-		log.debug(String.format("Enter: getEntry(%s, %s)", map.toString(), entryNameList.toString()));
+	private Object internalGetEntry(Map<String, Object> map, List<String> entryNameList) throws WebApplicationException {
+		log.debug(String.format("Enter: internalGetEntry(%s, %s)", map.toString(), entryNameList.toString()));
 		if (map != null && entryNameList != null && !entryNameList.isEmpty()) {
-			if (entryNameList.size() > 10) {
+			if (entryNameList.size() > MAX_ITEM_DEPTH) {
 				String message = "Entry list too deep";
 				log.error(message);
 				throw new WebApplicationException(new Exception(message), 500);
@@ -185,7 +240,7 @@ public class MDMRestResource extends AbstractPluginRestResource {
 				}
 				if (entry instanceof Map) {
 					log.debug("Next level");
-					return getEntry((Map<String, Object>) entry, newEntryNameList);
+					return internalGetEntry((Map<String, Object>) entry, newEntryNameList);
 				} else {
 					String message = "Entry is not a leaf, so must be a Map, but isn't"; 
 					log.error(message);
@@ -198,19 +253,243 @@ public class MDMRestResource extends AbstractPluginRestResource {
 		return null;
 	}
 
-	private Object getEntryFromPathSegments(Map<String, Object> map, List<PathSegment> entryList) throws WebApplicationException {
-		log.debug(String.format("Enter: getEntry(%s, %s)", map.toString(), entryList.toString()));
-		List<String> names = new ArrayList<String>();
-		if (entryList != null && !entryList.isEmpty()) {
-			for (PathSegment segment: entryList) {
-				String name = segment.getPath();
-				log.error("Segment: " + name);
-				names.add(name);
+	/**
+	 * Walk down the list of entry names. If found return the entry and possibly sub-entries from that point.
+	 * A leaf entry may be of any type. A non-leaf entry must be a Map.
+	 * 
+	 * @param map
+	 * @param entryNameList
+	 * @return
+	 * @throws WebApplicationException
+	 */
+	private Map<String, Object> internalSetEntry(Map<String, Object> map, List<String> entryNameList, Object value) throws WebApplicationException {		
+		log.debug(String.format("Enter: internalSetEntry(%s, %s, %s)", map.toString(), entryNameList.toString(), value));
+		
+		if (map != null && entryNameList != null && !entryNameList.isEmpty()) {
+			if (entryNameList.size() > MAX_ITEM_DEPTH) {
+				String message = "Entry list too deep";
+				log.error(message);
+				throw new WebApplicationException(new Exception(message), 500);
 			}
-			return getEntry(map, names);
+			String key = entryNameList.get(0);
+			@SuppressWarnings("unchecked")
+			List<String> newEntryNameList = ((List<String>) ((ArrayList<String>) entryNameList).clone());
+			newEntryNameList.remove(0);
+			if (map.containsKey(key)) {
+				Object entry = map.get(key);
+				if (newEntryNameList.isEmpty()) {
+					log.debug("Found leaf, setting value");
+					map.put(key, value);
+					return map;
+				}
+				if (!(entry instanceof Map)) {
+					log.debug("Entry is not a leaf. Converting to Map");
+					entry = new HashMap<String, Object>();
+				}
+				log.debug("Next level");
+				map.put(key, internalSetEntry((Map<String, Object>) entry, newEntryNameList, value));
+				return map;
+			} else {
+				log.warn("Entry not found, creating new entry");
+				Map entry = new HashMap<String, Object>();
+				if (newEntryNameList.isEmpty()) {
+					log.debug("Found leaf, setting value");
+					map.put(key, value);
+				} else {
+					log.debug("Next level");
+					map.put(key, internalSetEntry((Map<String, Object>) entry, newEntryNameList, value));
+				}
+				return map;
+			}
 		}
 		return null;
 	}
+
+	/**
+	 * 
+	 * @param map
+	 * @param entryList
+	 * @return
+	 * @throws WebApplicationException
+	 */
+	private boolean isEntryExistsWithPathSegments(Map<String, Object> map, List<PathSegment> entryList, boolean lastIsValue) throws WebApplicationException {
+		log.debug(String.format("Enter: isEntryExistsWithPathSegments(%s, %s)", map.toString(), entryList.toString()));
+		List<String> names = convertEntryList(entryList);
+		if (names != null && !names.isEmpty()) {
+			if (lastIsValue) {
+				// remove last item as that is considered the value
+				int size = names.size();
+				names.remove(size - 1);
+			}
+			if (!names.isEmpty()) {
+				return isEntryExists(map, names);
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * 
+	 * @param map
+	 * @param entryList
+	 * @param value
+	 * @return
+	 * @throws WebApplicationException
+	 */
+	private Map setEntryWithPathSegments(Map<String, Object> map, List<PathSegment> entryList, Object value) throws WebApplicationException {
+		log.debug(String.format("Enter: setEntryWithPathSegments(%s, %s, %s)", map.toString(), entryList.toString(), value));
+		List<String> names = convertEntryList(entryList);
+		if (names != null && !names.isEmpty()) {
+			if (names.size() < 1 || value == null) {
+				throw new WebApplicationException(new Exception("Not enough entries, need at least a key and value"), 500);
+			}
+			return internalSetEntry(map, names, value);
+		}
+		return null;
+	}
+
+	/**
+	 * 
+	 * @param map
+	 * @param entryList
+	 * @return
+	 * @throws WebApplicationException
+	 */
+	private Map setEntryWithPathSegments(Map<String, Object> map, List<PathSegment> entryList) throws WebApplicationException {
+		log.debug(String.format("Enter: setEntryWithPathSegments(%s, %s)", map.toString(), entryList.toString()));
+		List<String> names = convertEntryList(entryList);
+		if (names != null && !names.isEmpty()) {
+			if (names.size() < 2) {
+				throw new WebApplicationException(new Exception("Not enough entries, need at least a key and value"), 500);
+			}
+			int size = names.size();
+			String value = names.get(size - 1);
+			names.remove(size - 1);
+			return internalSetEntry(map, names, value);
+		}
+		return null;
+	}
+		
+	
+	/**
+	 * 
+	 * @param map
+	 * @param entryList
+	 * @return
+	 * @throws WebApplicationException
+	 */
+	private Object getEntryWithPathSegments(Map<String, Object> map, List<PathSegment> entryList) throws WebApplicationException {
+		log.debug(String.format("Enter: getEntryWithPathSegments(%s, %s)", map.toString(), entryList.toString()));
+		List<String> names = convertEntryList(entryList);
+		if (names != null && !names.isEmpty()) {
+			return internalGetEntry(map, names);
+		}
+		return null;
+	}
+	
+	@AllowAll
+	@POST
+	@Path("setEntry/{objectName}/{entry:.*}")
+    @Consumes(MediaType.APPLICATION_JSON)
+	public String setEntry(@PathParam("objectName") String objectName, @PathParam("entry") List<PathSegment> entries, Object data) throws GeneralException {
+		log.debug(String.format("Enter: setEntry(%s, %s, %s)", objectName, entries.toString(), data));
+		
+		if (!(data instanceof String || data instanceof Map || data instanceof List)) {
+			String message = String.format("Unsupported data type: %s", data.getClass().getName());
+			log.error(message);
+			throw new WebApplicationException(new Exception(message), 500);
+		}
+		
+		try {
+			SailPointContext context = getContext();
+			Custom custom = context.getObjectByName(Custom.class, objectName);
+			if (custom != null) {
+				Attributes<String, Object> attributes = custom.getAttributes();
+				if (attributes == null) {
+					attributes = new Attributes();
+				}
+
+				Map<String, Object> map = attributes.getMap();
+				if (map == null) {
+					map = new HashMap<String, Object>();
+				}
+				boolean exists = isEntryExistsWithPathSegments(map, entries, false);
+				
+				if ((exists && verifyAccess(objectName, CONFIG_PERMISSION_UPDATE) || (verifyAccess(objectName, CONFIG_PERMISSION_CREATE)))) {
+					log.debug("Access granted");
+					map = setEntryWithPathSegments(map, entries, data);
+					attributes.setMap(map);
+					custom.setAttributes(attributes);
+					context.startTransaction();
+					context.saveObject(custom);
+					context.commitTransaction();
+				} else {
+					throw new WebApplicationException(new Exception("Unauthorized"), 401);
+				}
+			} else {
+				String message = "Custom object not found";
+				log.error(message);
+				throw new WebApplicationException(new Exception(message), 404);
+			}
+		} catch (MasterDataManagementPluginException e) {
+			log.error(e);
+			throw new WebApplicationException(e, 500);
+		}		
+		return null;		
+	}
+	
+	/**
+	 * Set a new value for an entry. The last item on the list is considered a
+	 * leaf. The list must thus contain at least of two items: key and value
+	 * 
+	 * @param objectName
+	 * @param entries
+	 * @return
+	 * @throws GeneralException
+	 */
+	@AllowAll
+	@GET
+	@Path("setEntry/{objectName}/{entry:.*}")
+	public Object setEntry(@PathParam("objectName") String objectName, @PathParam("entry") List<PathSegment> entries) throws GeneralException {
+		log.debug(String.format("Enter: setEntry(%s, %s)", objectName, entries.toString()));
+		try {
+			SailPointContext context = getContext();
+			Custom custom = context.getObjectByName(Custom.class, objectName);
+			if (custom != null) {
+				Attributes<String, Object> attributes = custom.getAttributes();
+				if (attributes == null) {
+					attributes = new Attributes();
+				}
+
+				Map<String, Object> map = attributes.getMap();
+				if (map == null) {
+					map = new HashMap<String, Object>();
+				}
+				boolean exists = isEntryExistsWithPathSegments(map, entries, true);
+
+				if ((exists && verifyAccess(objectName, CONFIG_PERMISSION_UPDATE) || (verifyAccess(objectName, CONFIG_PERMISSION_CREATE)))) {
+					log.debug("Access granted");
+					map = setEntryWithPathSegments(map, entries);
+					attributes.setMap(map);
+					custom.setAttributes(attributes);
+					context.startTransaction();
+					context.saveObject(custom);
+					context.commitTransaction();
+				} else {
+					throw new WebApplicationException(new Exception("Unauthorized"), 401);
+				}
+			} else {
+				String message = "Custom object not found";
+				log.error(message);
+				throw new WebApplicationException(new Exception(message), 404);
+			}
+		} catch (MasterDataManagementPluginException e) {
+			log.error(e);
+			throw new WebApplicationException(e, 500);
+		}
+		return null;
+	}
+	
 
 	/**
 	 * Get a (sub*)entry from a Custom object.
@@ -233,7 +512,7 @@ public class MDMRestResource extends AbstractPluginRestResource {
 					Attributes<String, Object> attributes = custom.getAttributes();
 					if (attributes != null) {
 						Map<String, Object> map = attributes.getMap();
-						return getEntryFromPathSegments(map, entries);
+						return getEntryWithPathSegments(map, entries);
 					}
 				}
 			} else {
