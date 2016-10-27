@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -304,6 +305,51 @@ public class MDMRestResource extends AbstractPluginRestResource {
 		}
 		return null;
 	}
+	
+	/**
+	 * Look up the specified entry and remove it from the map.
+	 * 
+	 * @param map
+	 * @param entryNameList
+	 * @return
+	 * @throws WebApplicationException
+	 */
+	private Map<String, Object> internalDeleteEntry(Map<String, Object> map, List<String> entryNameList) throws WebApplicationException {
+		log.debug(String.format("Enter: internalDeleteEntry(%s, %s)", map.toString(), entryNameList.toString()));
+		
+		if (map != null && entryNameList != null && !entryNameList.isEmpty()) {
+			if (entryNameList.size() > MAX_ITEM_DEPTH) {
+				String message = "Entry list too deep";
+				log.error(message);
+				throw new WebApplicationException(new Exception(message), 500);
+			}
+			String key = entryNameList.get(0);
+			@SuppressWarnings("unchecked")
+			List<String> newEntryNameList = ((List<String>) ((ArrayList<String>) entryNameList).clone());
+			newEntryNameList.remove(0);
+			if (map.containsKey(key)) {
+				Object entry = map.get(key);
+				if (newEntryNameList.isEmpty()) {
+					log.debug("Found leaf, deleting entry");
+					map.remove(key);
+					return map;
+				}
+				if (!(entry instanceof Map)) {
+					String message = "Next subentry not found";
+					log.error(message);
+					throw new WebApplicationException(new Exception(message), 404);
+				}
+				log.debug("Next level");
+				map.put(key, internalDeleteEntry((Map<String, Object>) entry, newEntryNameList));
+				return map;
+			} else {
+				String message = "Entry not found, creating new entry";
+				log.error(message);
+				throw new WebApplicationException(new Exception(message), 404);
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * 
@@ -332,6 +378,24 @@ public class MDMRestResource extends AbstractPluginRestResource {
 	 * 
 	 * @param map
 	 * @param entryList
+	 * @return 
+	 */
+	private Map<String, Object> deleteEntryWithPathSegments(Map<String, Object> map, List<PathSegment> entryList) {
+		log.debug(String.format("Enter: deleteEntryWithPathSegments(%s, %s)", map.toString(), entryList.toString()));
+		List<String> names = convertEntryList(entryList);
+		if (names != null && !names.isEmpty()) {
+			if (names.size() < 1) {
+				throw new WebApplicationException(new Exception("Not enough entries, need at least a key and value"), 500);
+			}
+			map = internalDeleteEntry(map, names);
+		}
+		return map;
+	}
+	
+	/**
+	 * 
+	 * @param map
+	 * @param entryList
 	 * @param value
 	 * @return
 	 * @throws WebApplicationException
@@ -343,9 +407,9 @@ public class MDMRestResource extends AbstractPluginRestResource {
 			if (names.size() < 1 || value == null) {
 				throw new WebApplicationException(new Exception("Not enough entries, need at least a key and value"), 500);
 			}
-			return internalSetEntry(map, names, value);
+			map =  internalSetEntry(map, names, value);
 		}
-		return null;
+		return map;
 	}
 
 	/**
@@ -365,9 +429,9 @@ public class MDMRestResource extends AbstractPluginRestResource {
 			int size = names.size();
 			String value = names.get(size - 1);
 			names.remove(size - 1);
-			return internalSetEntry(map, names, value);
+			map = internalSetEntry(map, names, value);
 		}
-		return null;
+		return map;
 	}
 		
 	
@@ -391,6 +455,7 @@ public class MDMRestResource extends AbstractPluginRestResource {
 	@POST
 	@Path("setEntry/{objectName}/{entry:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
 	public String setEntry(@PathParam("objectName") String objectName, @PathParam("entry") List<PathSegment> entries, Object data) throws GeneralException {
 		log.debug(String.format("Enter: setEntry(%s, %s, %s)", objectName, entries.toString(), data));
 		
@@ -435,7 +500,7 @@ public class MDMRestResource extends AbstractPluginRestResource {
 			log.error(e);
 			throw new WebApplicationException(e, 500);
 		}		
-		return null;		
+		return "";		
 	}
 	
 	/**
@@ -450,6 +515,7 @@ public class MDMRestResource extends AbstractPluginRestResource {
 	@AllowAll
 	@GET
 	@Path("setEntry/{objectName}/{entry:.*}")
+	@Produces(MediaType.TEXT_PLAIN)
 	public Object setEntry(@PathParam("objectName") String objectName, @PathParam("entry") List<PathSegment> entries) throws GeneralException {
 		log.debug(String.format("Enter: setEntry(%s, %s)", objectName, entries.toString()));
 		try {
@@ -487,7 +553,7 @@ public class MDMRestResource extends AbstractPluginRestResource {
 			log.error(e);
 			throw new WebApplicationException(e, 500);
 		}
-		return null;
+		return "";
 	}
 	
 
@@ -557,6 +623,45 @@ public class MDMRestResource extends AbstractPluginRestResource {
 			throw new WebApplicationException(e, 500);
 		}
 		return new HashMap<String, Object>();
+	}
+	
+	/**
+	 * 
+	 * @param objectName
+	 * @param entries
+	 * @return
+	 * @throws GeneralException
+	 */
+	@AllowAll
+	@DELETE
+	@Path("deleteEntry/{objectName}/{entry:.*}")
+	@Produces(MediaType.TEXT_PLAIN)
+	public String deleteEntry(@PathParam("objectName") String objectName, @PathParam("entry") List<PathSegment> entries) throws GeneralException {
+		log.debug(String.format("Enter: getEntry(%s, %s)", objectName, entries.toString()));		
+		try {
+			if (verifyAccess(objectName, CONFIG_PERMISSION_DELETE)) {
+				Custom custom = getContext().getObjectByName(Custom.class, objectName);
+				if (custom != null) {
+					Attributes<String, Object> attributes = custom.getAttributes();
+					if (attributes != null) {
+						SailPointContext context = getContext();
+						Map<String, Object> map = attributes.getMap();
+						map = deleteEntryWithPathSegments(map, entries);
+						attributes.setMap(map);
+						custom.setAttributes(attributes);
+						context.startTransaction();
+						context.saveObject(custom);
+						context.commitTransaction();
+					}
+				}
+			} else {
+				throw new WebApplicationException(new Exception("Unauthorized"), 401);				
+			}
+		} catch (MasterDataManagementPluginException e) {
+			log.error(e);
+			throw new WebApplicationException(e, 500);
+		}
+		return "";
 	}
 	
 	/**

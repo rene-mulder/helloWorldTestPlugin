@@ -11,7 +11,7 @@
                                 <entry key="MasterDataManagement">
                                     <value>
                                         <Plugin uniqueName="iiqmdmplugin" displayName="Master Data Management Plugin" enabled="true"
-                                                version="0.0.0.31" allowDisable="true" visible="true" allowUninstall="true"
+                                                version="0.0.0.37" allowDisable="true" visible="true" allowUninstall="true"
                                                 minFrameworkVersion="0.5.5" maxFrameworkVersion="1.0.0"
                                                 minUpgradableVersion="0.0.0.0" certificationLevel="BASIC"
                                                 pluginAccessRight="MasterDataManagementPluginRight">
